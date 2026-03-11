@@ -17,59 +17,101 @@ class HabitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: habit.color.withOpacity(0.1),
-          child: Icon(
-            habit.icon,
-            color: habit.color,
-          ),
+      child: Dismissible(
+        key: Key(habit.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          color: Colors.red,
+          child: const Icon(Icons.delete, color: Colors.white),
         ),
-        title: Text(
-          habit.title,
-          style: TextStyle(
-            decoration: habit.isCompletedToday ? TextDecoration.lineThrough : null,
-            color: habit.isCompletedToday ? Colors.grey : null,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            LinearProgressIndicator(
-              value: habit.progress,
-              backgroundColor: habit.color.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(habit.color),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Серия: ${habit.currentStreak} из ${habit.targetDays} дней',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
+        onDismissed: (direction) {
+          onDelete();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${habit.title} удалена'),
+              action: SnackBarAction(
+                label: 'Отмена',
+                onPressed: () {
+                  // Здесь можно добавить отмену удаления
+                },
               ),
             ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Кнопка выполнения
-            IconButton(
-              icon: Icon(
-                habit.isCompletedToday ? Icons.check_circle : Icons.check_circle_outline,
-                color: habit.isCompletedToday ? habit.color : Colors.grey,
+          );
+        },
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: habit.color.withOpacity(0.1),
+            child: Icon(
+              habit.icon,
+              color: habit.color,
+            ),
+          ),
+          title: Text(
+            habit.title,
+            style: TextStyle(
+              decoration: habit.isCompletedToday ? TextDecoration.lineThrough : null,
+              color: habit.isCompletedToday ? Colors.grey : null,
+              fontWeight: habit.isCompletedToday ? FontWeight.normal : FontWeight.w500,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              LinearProgressIndicator(
+                value: habit.progress,
+                backgroundColor: habit.color.withOpacity(0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(habit.color),
+                minHeight: 4,
               ),
-              onPressed: onTap,
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    Icons.whatshot,
+                    size: 14,
+                    color: habit.currentStreak > 0 ? Colors.orange : Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Серия: ${habit.currentStreak} из ${habit.targetDays}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  if (habit.reminderTime != null) ...[
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      habit.reminderTime!.format(context),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              habit.isCompletedToday ? Icons.check_circle : Icons.check_circle_outline,
+              color: habit.isCompletedToday ? habit.color : Colors.grey,
+              size: 28,
             ),
-            // Кнопка удаления
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: onDelete,
-            ),
-          ],
+            onPressed: onTap,
+          ),
+          onTap: onTap,
         ),
-        onTap: onTap,
       ),
     );
   }

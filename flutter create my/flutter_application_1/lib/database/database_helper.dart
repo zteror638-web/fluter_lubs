@@ -1,11 +1,7 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/habit.dart';
-import '../models/idea.dart';
-import '../models/quote.dart';
-import '../models/advice.dart';
-import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -14,14 +10,11 @@ class DatabaseHelper {
 
   static Database? _database;
 
-  // Названия таблиц
   static const String TABLE_HABITS = 'habits';
   static const String TABLE_IDEAS = 'ideas';
   static const String TABLE_QUOTES = 'quotes';
   static const String TABLE_ADVICES = 'advices';
   static const String TABLE_HABIT_COMPLETIONS = 'habit_completions';
-  static const String TABLE_TAGS = 'tags';
-  static const String TABLE_QUOTE_TAGS = 'quote_tags';
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -30,7 +23,8 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'habit_tracker.db');
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final path = join(documentsDirectory.path, 'habit_tracker.db');
     
     return await openDatabase(
       path,
@@ -58,7 +52,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Таблица выполнений привычек (для отслеживания серий)
+    // Таблица выполнений привычек
     await db.execute('''
       CREATE TABLE $TABLE_HABIT_COMPLETIONS(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +82,7 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         content TEXT NOT NULL,
         author TEXT NOT NULL,
-        isFavorite INTEGER DEFAULT 0,
+        isFavorite INTEGER DEFAULT 1,
         dateAdded TEXT NOT NULL,
         lastViewed TEXT
       )
@@ -104,39 +98,22 @@ class DatabaseHelper {
       )
     ''');
 
-    // Таблица тегов
-    await db.execute('''
-      CREATE TABLE $TABLE_TAGS(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
-        colorValue INTEGER
-      )
-    ''');
-
-    // Связь цитат с тегами
-    await db.execute('''
-      CREATE TABLE $TABLE_QUOTE_TAGS(
-        quoteId TEXT NOT NULL,
-        tagId INTEGER NOT NULL,
-        FOREIGN KEY (quoteId) REFERENCES $TABLE_QUOTES(id) ON DELETE CASCADE,
-        FOREIGN KEY (tagId) REFERENCES $TABLE_TAGS(id) ON DELETE CASCADE,
-        PRIMARY KEY (quoteId, tagId)
-      )
-    ''');
-
-    // Создание индексов для оптимизации
-    await db.execute('CREATE INDEX idx_habits_isActive ON $TABLE_HABITS(isActive)');
-    await db.execute('CREATE INDEX idx_completions_habitId ON $TABLE_HABIT_COMPLETIONS(habitId)');
+    // Индексы
+    await db.execute('CREATE INDEX idx_habits_active ON $TABLE_HABITS(isActive)');
+    await db.execute('CREATE INDEX idx_completions_habit ON $TABLE_HABIT_COMPLETIONS(habitId)');
     await db.execute('CREATE INDEX idx_completions_date ON $TABLE_HABIT_COMPLETIONS(completionDate)');
     await db.execute('CREATE INDEX idx_ideas_favorite ON $TABLE_IDEAS(isFavorite)');
-    await db.execute('CREATE INDEX idx_quotes_favorite ON $TABLE_QUOTES(isFavorite)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Добавляем новые поля при обновлении
       await db.execute('ALTER TABLE $TABLE_HABITS ADD COLUMN reminderTime TEXT');
       await db.execute('ALTER TABLE $TABLE_IDEAS ADD COLUMN category TEXT');
     }
+  }
+
+  Future<void> close() async {
+    final db = await database;
+    db.close();
   }
 }

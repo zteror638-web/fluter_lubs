@@ -30,7 +30,6 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<StorageService>(
         builder: (context, storage, child) {
-          // Применяем тему из настроек
           final isDarkMode = storage.settings.isDarkMode;
           
           return MaterialApp(
@@ -44,12 +43,24 @@ class MyApp extends StatelessWidget {
                 elevation: 0,
                 centerTitle: true,
               ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             darkTheme: ThemeData.dark().copyWith(
               primaryColor: Colors.blue,
               appBarTheme: const AppBarTheme(
                 elevation: 0,
                 centerTitle: true,
+              ),
+              cardTheme: CardTheme(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             initialRoute: '/',
@@ -66,7 +77,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Главный экран с BottomNavigationBar (остается без изменений)
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 

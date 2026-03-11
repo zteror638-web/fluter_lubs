@@ -44,103 +44,116 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
         ],
       ),
       drawer: _buildDrawer(context),
       body: Consumer<StorageService>(
         builder: (context, storage, child) {
-          return CustomScrollView(
-            slivers: [
-              // Блок прогресса дня
-              SliverToBoxAdapter(
-                child: ProgressWidget(
-                  completed: storage.completedTodayCount,
-                  total: storage.totalHabitsCount,
+          return RefreshIndicator(
+            onRefresh: () async {
+              await storage._loadAllData();
+            },
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: FutureBuilder(
+                    future: storage.getStatistics(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final stats = snapshot.data as Map;
+                        return ProgressWidget(
+                          completed: stats['completedToday'] ?? 0,
+                          total: stats['total'] ?? 0,
+                          dailyGoal: stats['dailyGoal'] ?? 5,
+                        );
+                      }
+                      return const SizedBox(height: 100);
+                    },
+                  ),
                 ),
-              ),
-              
-              // Карточка вдохновения
-              SliverToBoxAdapter(
-                child: _buildInspirationCard(context),
-              ),
-              
-              // Заголовок "Привычки"
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                sliver: SliverToBoxAdapter(
-                  child: Text(
-                    'Сегодняшние привычки',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                
+                SliverToBoxAdapter(
+                  child: _buildInspirationCard(context),
+                ),
+                
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      'Сегодняшние привычки',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              
-              // Список привычек
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final habit = storage.habits[index];
-                    return HabitCard(
-                      habit: habit,
-                      onTap: () async {
-                        await storage.completeHabitToday(habit.id);
-                      },
-                      onDelete: () async {
-                        await storage.deleteHabit(habit.id);
-                      },
-                    );
-                  },
-                  childCount: storage.habits.length,
+                
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final habit = storage.habits[index];
+                      return HabitCard(
+                        habit: habit,
+                        onTap: () async {
+                          await storage.completeHabitToday(habit.id);
+                        },
+                        onDelete: () async {
+                          await storage.deleteHabit(habit.id);
+                        },
+                      );
+                    },
+                    childCount: storage.habits.length,
+                  ),
                 ),
-              ),
-              
-              // Заголовок "Идеи"
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                sliver: SliverToBoxAdapter(
-                  child: Text(
-                    'Мои идеи',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      'Мои идеи',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              
-              // Кнопка добавления идеи
-              SliverToBoxAdapter(
-                child: _buildIdeaInput(context, storage),
-              ),
-              
-              // Список идей
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final idea = storage.ideas[index];
-                    return IdeaCard(
-                      idea: idea,
-                      onToggleFavorite: () async {
-                        idea.isFavorite = !idea.isFavorite;
-                        await storage.updateIdea(idea);
-                      },
-                      onDelete: () async {
-                        await storage.deleteIdea(idea.id);
-                      },
-                    );
-                  },
-                  childCount: storage.ideas.length,
+                
+                SliverToBoxAdapter(
+                  child: _buildIdeaInput(context, storage),
                 ),
-              ),
-              
-              // Нижний отступ
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 20),
-              ),
-            ],
+                
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final idea = storage.ideas[index];
+                      return IdeaCard(
+                        idea: idea,
+                        onToggleFavorite: () async {
+                          idea.isFavorite = !idea.isFavorite;
+                          await storage.updateIdea(idea);
+                        },
+                        onDelete: () async {
+                          await storage.deleteIdea(idea.id);
+                        },
+                      );
+                    },
+                    childCount: storage.ideas.length,
+                  ),
+                ),
+                
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 20),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -174,13 +187,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Habit & Idea Tracker',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Consumer<StorageService>(
+                  builder: (context, storage, child) {
+                    return Text(
+                      storage.settings.userName ?? 'Habit Tracker',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
                 Text(
                   'Версия 1.0.0',
@@ -204,10 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Вдохновение'),
             onTap: () {
               Navigator.pop(context);
-              // Переход на экран вдохновения через родительскую навигацию
               final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
               parentState?.setState(() {
-                // Меняем индекс BottomNavigationBar
+                parentState._currentIndex = 1;
               });
             },
           ),
@@ -218,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
               parentState?.setState(() {
-                // Меняем индекс BottomNavigationBar на 2 (Избранное)
+                parentState._currentIndex = 2;
               });
             },
           ),
@@ -233,22 +249,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.share_outlined),
-            title: const Text('Поделиться приложением'),
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Настройки'),
             onTap: () {
               Navigator.pop(context);
-              // Логика шаринга
+              Navigator.pushNamed(context, '/settings');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.star_outline),
-            title: const Text('Оценить приложение'),
-            onTap: () {
-              Navigator.pop(context);
-              // Логика оценки
-            },
-          ),
-          const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('О приложении'),
@@ -256,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
               parentState?.setState(() {
-                // Меняем индекс BottomNavigationBar на 3 (О нас)
+                parentState._currentIndex = 3;
               });
             },
           ),
@@ -272,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () {
           final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
           parentState?.setState(() {
-            // Меняем индекс BottomNavigationBar на 1 (Вдохновение)
+            parentState._currentIndex = 1;
           });
         },
         borderRadius: BorderRadius.circular(12),
@@ -358,6 +365,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 fillColor: Colors.grey.shade50,
               ),
               autofocus: true,
+              maxLines: 3,
+              minLines: 1,
               onSubmitted: (value) => _saveIdea(storage),
             ),
           ),
@@ -401,6 +410,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _showIdeaInput = false;
         _ideaController.clear();
       });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Идея сохранена!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -411,7 +427,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Класс для поиска
 class HabitSearchDelegate extends SearchDelegate {
   @override
   List<Widget>? buildActions(BuildContext context) {
@@ -497,6 +512,9 @@ class HabitSearchDelegate extends SearchDelegate {
                 leading: Icon(habit.icon, color: habit.color),
                 title: Text(habit.title),
                 subtitle: Text('Серия: ${habit.currentStreak} дней'),
+                onTap: () {
+                  close(context, null);
+                },
               )),
             ],
             if (ideas.isNotEmpty) ...[
@@ -514,6 +532,9 @@ class HabitSearchDelegate extends SearchDelegate {
                 leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
                 title: Text(idea.content),
                 subtitle: Text('${idea.createdAt.day}.${idea.createdAt.month}.${idea.createdAt.year}'),
+                onTap: () {
+                  close(context, null);
+                },
               )),
             ],
           ],

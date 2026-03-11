@@ -6,17 +6,9 @@ import '../models/habit.dart';
 class HabitRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Создание привычки
   Future<void> insertHabit(Habit habit) async {
     final Database db = await _dbHelper.database;
     
-    // Сохраняем иконку как JSON
-    final iconData = {
-      'codePoint': habit.icon.codePoint,
-      'fontFamily': habit.icon.fontFamily,
-      'fontPackage': habit.icon.fontPackage,
-    };
-
     await db.insert(
       DatabaseHelper.TABLE_HABITS,
       {
@@ -29,18 +21,19 @@ class HabitRepository {
         'periodicity': habit.periodicity,
         'createdAt': habit.createdAt.toIso8601String(),
         'targetDays': habit.targetDays,
+        'reminderTime': habit.reminderTime != null 
+            ? '${habit.reminderTime!.hour}:${habit.reminderTime!.minute}' 
+            : null,
         'isActive': 1,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    // Сохраняем историю выполнений
     for (var date in habit.completionDates) {
       await _recordCompletion(habit.id, date);
     }
   }
 
-  // Получение всех привычек
   Future<List<Habit>> getAllHabits() async {
     final Database db = await _dbHelper.database;
     
@@ -51,18 +44,26 @@ class HabitRepository {
       orderBy: 'createdAt DESC',
     );
 
-    return await Future.wait(habitMaps.map((map) async {
-      // Восстанавливаем иконку
+    List<Habit> habits = [];
+    for (var map in habitMaps) {
+      final completions = await getCompletionsForHabit(map['id']);
+      
       final icon = IconData(
         map['iconCodePoint'],
         fontFamily: map['iconFontFamily'],
         fontPackage: map['iconFontPackage'],
       );
 
-      // Получаем даты выполнений
-      final completions = await getCompletionsForHabit(map['id']);
+      TimeOfDay? reminderTime;
+      if (map['reminderTime'] != null) {
+        final parts = map['reminderTime'].split(':');
+        reminderTime = TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
+        );
+      }
 
-      return Habit(
+      habits.add(Habit(
         id: map['id'],
         title: map['title'],
         icon: icon,
@@ -71,11 +72,14 @@ class HabitRepository {
         createdAt: DateTime.parse(map['createdAt']),
         completionDates: completions,
         targetDays: map['targetDays'],
-      );
-    }).toList());
+        reminderTime: reminderTime,
+        isActive: map['isActive'] == 1,
+      ));
+    }
+    
+    return habits;
   }
 
-  // Получение выполнений для привычки
   Future<List<DateTime>> getCompletionsForHabit(String habitId) async {
     final Database db = await _dbHelper.database;
     
@@ -91,11 +95,9 @@ class HabitRepository {
         .toList();
   }
 
-  // Запись выполнения привычки
   Future<void> _recordCompletion(String habitId, DateTime date) async {
     final Database db = await _dbHelper.database;
     
-    // Проверяем, не записано ли уже выполнение на эту дату
     final existing = await db.query(
       DatabaseHelper.TABLE_HABIT_COMPLETIONS,
       where: 'habitId = ? AND date(completionDate) = date(?)',
@@ -113,12 +115,10 @@ class HabitRepository {
     }
   }
 
-  // Отметка выполнения привычки сегодня
   Future<void> completeHabitToday(String habitId) async {
     await _recordCompletion(habitId, DateTime.now());
   }
 
-  // Обновление привычки
   Future<void> updateHabit(Habit habit) async {
     final Database db = await _dbHelper.database;
     
@@ -128,13 +128,15 @@ class HabitRepository {
         'title': habit.title,
         'periodicity': habit.periodicity,
         'targetDays': habit.targetDays,
+        'reminderTime': habit.reminderTime != null 
+            ? '${habit.reminderTime!.hour}:${habit.reminderTime!.minute}' 
+            : null,
       },
       where: 'id = ?',
       whereArgs: [habit.id],
     );
   }
 
-  // Удаление привычки (мягкое удаление)
   Future<void> deleteHabit(String id) async {
     final Database db = await _dbHelper.database;
     await db.update(
@@ -145,18 +147,15 @@ class HabitRepository {
     );
   }
 
-  // Получение статистики
-  Future<Map<String, dynamic>> getHabitStatistics() async {
+  Future<Map<String, dynamic>> getStatistics() async {
     final Database db = await _dbHelper.database;
     
-    // Общее количество привычек
     final totalCount = Sqflite.firstIntValue(await db.rawQuery(
       'SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_HABITS} WHERE isActive = 1'
     )) ?? 0;
 
-    // Количество выполненных сегодня
     final today = DateTime.now();
-    final todayStr = today.toIso8601String().split('T')[0];
+    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     
     final completedToday = Sqflite.firstIntValue(await db.rawQuery('''
       SELECT COUNT(DISTINCT habitId) 
@@ -164,26 +163,9 @@ class HabitRepository {
       WHERE date(completionDate) = ?
     ''', [todayStr])) ?? 0;
 
-    // Лучшая серия
-    final bestStreak = await _calculateBestStreak();
-
     return {
       'total': totalCount,
       'completedToday': completedToday,
-      'bestStreak': bestStreak,
     };
-  }
-
-  Future<int> _calculateBestStreak() async {
-    final habits = await getAllHabits();
-    int maxStreak = 0;
-    
-    for (var habit in habits) {
-      if (habit.currentStreak > maxStreak) {
-        maxStreak = habit.currentStreak;
-      }
-    }
-    
-    return maxStreak;
   }
 }

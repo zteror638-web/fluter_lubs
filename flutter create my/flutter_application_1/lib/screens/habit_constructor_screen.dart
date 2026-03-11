@@ -19,6 +19,7 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
   Color _selectedColor = Colors.blue;
   String _selectedPeriodicity = 'daily';
   int _targetDays = 21;
+  TimeOfDay? _reminderTime;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Название привычки
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -50,7 +50,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
             
             const SizedBox(height: 20),
             
-            // Выбор иконки
             const Text(
               'Выберите иконку:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -103,7 +102,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
             
             const SizedBox(height: 20),
             
-            // Выбор цвета
             const Text(
               'Выберите цвет:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -145,7 +143,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
             
             const SizedBox(height: 20),
             
-            // Периодичность
             const Text(
               'Периодичность:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -163,11 +160,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
                   label: Text('Еженедельно'),
                   icon: Icon(Icons.calendar_view_week),
                 ),
-                ButtonSegment(
-                  value: 'custom',
-                  label: Text('Своя'),
-                  icon: Icon(Icons.tune),
-                ),
               ],
               selected: {_selectedPeriodicity},
               onSelectionChanged: (Set<String> newSelection) {
@@ -179,7 +171,22 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
             
             const SizedBox(height: 20),
             
-            // Целевое количество дней
+            ListTile(
+              leading: const Icon(Icons.access_time),
+              title: const Text('Напоминание'),
+              subtitle: Text(_reminderTime != null
+                  ? _reminderTime!.format(context)
+                  : 'Не установлено'),
+              trailing: IconButton(
+                icon: Icon(_reminderTime != null 
+                    ? Icons.edit 
+                    : Icons.add),
+                onPressed: _selectReminderTime,
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -205,7 +212,6 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
             
             const SizedBox(height: 30),
             
-            // Кнопка сохранения
             ElevatedButton(
               onPressed: _saveHabit,
               style: ElevatedButton.styleFrom(
@@ -224,6 +230,18 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
     );
   }
 
+  Future<void> _selectReminderTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _reminderTime ?? TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _reminderTime = picked;
+      });
+    }
+  }
+
   Future<void> _saveHabit() async {
     if (_formKey.currentState!.validate()) {
       final storage = Provider.of<StorageService>(context, listen: false);
@@ -237,6 +255,7 @@ class _HabitConstructorScreenState extends State<HabitConstructorScreen> {
         createdAt: DateTime.now(),
         completionDates: [],
         targetDays: _targetDays,
+        reminderTime: _reminderTime,
       );
       
       await storage.addHabit(habit);

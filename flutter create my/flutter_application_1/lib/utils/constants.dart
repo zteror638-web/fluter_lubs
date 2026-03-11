@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class AppConstants {
-  // Иконки для привычек
   static const List<IconData> habitIcons = [
     Icons.fitness_center,
     Icons.local_drink,
@@ -17,9 +16,12 @@ class AppConstants {
     Icons.coffee,
     Icons.night_shelter,
     Icons.light_mode,
+    Icons.medication,
+    Icons.yoga,
+    Icons.spa,
+    Icons.agriculture,
   ];
 
-  // Цвета для привычек
   static const List<Color> habitColors = [
     Colors.blue,
     Colors.green,
@@ -31,12 +33,27 @@ class AppConstants {
     Colors.amber,
     Colors.indigo,
     Colors.cyan,
+    Colors.lime,
+    Colors.deepOrange,
+    Colors.brown,
+    Colors.blueGrey,
   ];
 
-  // Периодичность
+  static const List<String> quoteTags = [
+    'motivation',
+    'inspiration',
+    'wisdom',
+    'success',
+    'happiness',
+    'life',
+    'love',
+    'friendship',
+    'dreams',
+    'courage',
+  ];
+
   static const Map<String, String> periodicityLabels = {
     'daily': 'Ежедневно',
     'weekly': 'Еженедельно',
-    'custom': 'Своя периодичность',
   };
 }

@@ -1,30 +1,20 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import '../models/idea.dart';
 
 class IdeaRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Создание идеи
   Future<void> insertIdea(Idea idea) async {
     final Database db = await _dbHelper.database;
     
     await db.insert(
       DatabaseHelper.TABLE_IDEAS,
-      {
-        'id': idea.id,
-        'content': idea.content,
-        'description': idea.description,
-        'createdAt': idea.createdAt.toIso8601String(),
-        'isFavorite': idea.isFavorite ? 1 : 0,
-        'source': idea.source,
-      },
+      idea.toJson(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Получение всех идей
   Future<List<Idea>> getAllIdeas({bool onlyFavorites = false}) async {
     final Database db = await _dbHelper.database;
     
@@ -43,19 +33,9 @@ class IdeaRepository {
       orderBy: 'createdAt DESC',
     );
 
-    return ideaMaps.map((map) {
-      return Idea(
-        id: map['id'],
-        content: map['content'],
-        description: map['description'],
-        createdAt: DateTime.parse(map['createdAt']),
-        isFavorite: map['isFavorite'] == 1,
-        source: map['source'],
-      );
-    }).toList();
+    return ideaMaps.map((map) => Idea.fromJson(map)).toList();
   }
 
-  // Обновление идеи
   Future<void> updateIdea(Idea idea) async {
     final Database db = await _dbHelper.database;
     
@@ -65,13 +45,13 @@ class IdeaRepository {
         'content': idea.content,
         'description': idea.description,
         'isFavorite': idea.isFavorite ? 1 : 0,
+        'category': idea.category,
       },
       where: 'id = ?',
       whereArgs: [idea.id],
     );
   }
 
-  // Удаление идеи
   Future<void> deleteIdea(String id) async {
     final Database db = await _dbHelper.database;
     await db.delete(
@@ -81,7 +61,6 @@ class IdeaRepository {
     );
   }
 
-  // Поиск идей
   Future<List<Idea>> searchIdeas(String query) async {
     final Database db = await _dbHelper.database;
     
@@ -92,13 +71,6 @@ class IdeaRepository {
       orderBy: 'createdAt DESC',
     );
 
-    return ideaMaps.map((map) => Idea(
-      id: map['id'],
-      content: map['content'],
-      description: map['description'],
-      createdAt: DateTime.parse(map['createdAt']),
-      isFavorite: map['isFavorite'] == 1,
-      source: map['source'],
-    )).toList();
+    return ideaMaps.map((map) => Idea.fromJson(map)).toList();
   }
 }

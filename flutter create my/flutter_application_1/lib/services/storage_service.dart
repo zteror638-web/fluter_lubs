@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import '../database/habit_repository.dart';
 import '../database/idea_repository.dart';
-import '../database/quote_repository.dart';
 import '../services/settings_manager.dart';
 import '../models/habit.dart';
 import '../models/idea.dart';
 import '../models/quote.dart';
 import '../models/advice.dart';
+import 'package:sqflite/sqflite.dart';
 
 class StorageService extends ChangeNotifier {
   late final HabitRepository _habitRepo;
   late final IdeaRepository _ideaRepo;
-  late final QuoteRepository _quoteRepo;
   late final SettingsManager _settings;
 
   List<Habit> _habits = [];
@@ -25,7 +24,6 @@ class StorageService extends ChangeNotifier {
   StorageService() {
     _habitRepo = HabitRepository();
     _ideaRepo = IdeaRepository();
-    _quoteRepo = QuoteRepository();
     _settings = SettingsManager();
   }
 
@@ -36,12 +34,10 @@ class StorageService extends ChangeNotifier {
     return service;
   }
 
-  // Загрузка всех данных
   Future<void> _loadAllData() async {
     await Future.wait([
       _loadHabits(),
       _loadIdeas(),
-      _loadFavoriteQuotes(),
     ]);
     notifyListeners();
   }
@@ -54,11 +50,6 @@ class StorageService extends ChangeNotifier {
     _ideas = await _ideaRepo.getAllIdeas();
   }
 
-  Future<void> _loadFavoriteQuotes() async {
-    _favoriteQuotes = await _quoteRepo.getFavoriteQuotes();
-  }
-
-  // CRUD для привычек
   Future<void> addHabit(Habit habit) async {
     await _habitRepo.insertHabit(habit);
     await _loadHabits();
@@ -83,7 +74,6 @@ class StorageService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // CRUD для идей
   Future<void> addIdea(Idea idea) async {
     await _ideaRepo.insertIdea(idea);
     await _loadIdeas();
@@ -106,34 +96,6 @@ class StorageService extends ChangeNotifier {
     return await _ideaRepo.searchIdeas(query);
   }
 
-  // Работа с цитатами
-  Future<void> addFavoriteQuote(Quote quote) async {
-    await _quoteRepo.addToFavorites(quote);
-    await _loadFavoriteQuotes();
-    notifyListeners();
-  }
-
-  Future<void> removeFavoriteQuote(String quoteId) async {
-    await _quoteRepo.removeFromFavorites(quoteId);
-    await _loadFavoriteQuotes();
-    notifyListeners();
-  }
-
-  // Статистика
-  Future<Map<String, dynamic>> getStatistics() async {
-    final habitStats = await _habitRepo.getHabitStatistics();
-    final ideasCount = _ideas.length;
-    final favoritesCount = _favoriteQuotes.length;
-
-    return {
-      ...habitStats,
-      'ideasCount': ideasCount,
-      'favoritesCount': favoritesCount,
-      'dailyGoal': _settings.dailyGoal,
-      'completedToday': habitStats['completedToday'],
-    };
-  }
-
   int get completedTodayCount {
     final today = DateTime.now();
     return _habits.where((h) => h.isCompletedToday).length;
@@ -141,13 +103,14 @@ class StorageService extends ChangeNotifier {
 
   int get totalHabitsCount => _habits.length;
 
-  // Доступ к настройкам
   SettingsManager get settings => _settings;
 
-  // Очистка всех данных (для тестирования)
-  Future<void> clearAllData() async {
-    // Здесь можно добавить логику очистки всех таблиц
-    await _loadAllData();
-    notifyListeners();
+  Future<Map<String, dynamic>> getStatistics() async {
+    final habitStats = await _habitRepo.getStatistics();
+    return {
+      ...habitStats,
+      'ideasCount': _ideas.length,
+      'dailyGoal': _settings.dailyGoal,
+    };
   }
 }

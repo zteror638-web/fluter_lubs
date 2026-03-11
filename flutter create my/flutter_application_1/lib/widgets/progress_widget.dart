@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 class ProgressWidget extends StatelessWidget {
   final int completed;
   final int total;
+  final int dailyGoal;
 
   const ProgressWidget({
     super.key,
     required this.completed,
     required this.total,
+    required this.dailyGoal,
   });
 
   @override
   Widget build(BuildContext context) {
     final progress = total > 0 ? completed / total : 0.0;
+    final goalProgress = dailyGoal > 0 ? completed / dailyGoal : 0.0;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -80,20 +83,33 @@ class ProgressWidget extends StatelessWidget {
             children: [
               _buildStatItem(
                 icon: Icons.whatshot,
-                value: total > 0 ? (completed / total * 100).toInt() : 0,
-                label: 'Активность',
+                value: completed,
+                label: 'Выполнено',
+                color: Colors.orange,
+              ),
+              _buildStatItem(
+                icon: Icons.flag,
+                value: dailyGoal,
+                label: 'Цель',
+                color: Colors.green,
               ),
               _buildStatItem(
                 icon: Icons.emoji_events,
                 value: total,
                 label: 'Всего',
-              ),
-              _buildStatItem(
-                icon: Icons.star,
-                value: completed,
-                label: 'Готово',
+                color: Colors.amber,
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: goalProgress.clamp(0.0, 1.0),
+              backgroundColor: Colors.white.withOpacity(0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+              minHeight: 5,
+            ),
           ),
         ],
       ),
@@ -104,6 +120,7 @@ class ProgressWidget extends StatelessWidget {
     required IconData icon,
     required int value,
     required String label,
+    required Color color,
   }) {
     return Column(
       children: [
