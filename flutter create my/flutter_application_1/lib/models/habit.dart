@@ -1,13 +1,17 @@
+import 'package:flutter/material.dart';
+
 class Habit {
   final String id;
   String title;
   IconData icon;
   Color color;
-  String periodicity; // 'daily', 'weekly', 'custom'
+  String periodicity;
   DateTime createdAt;
-  List<DateTime> completionDates; // Даты выполнения
-  int targetDays; // Целевое количество дней (например, 21 день для привычки)
-  
+  List<DateTime> completionDates;
+  int targetDays;
+  TimeOfDay? reminderTime;
+  bool isActive;
+
   Habit({
     required this.id,
     required this.title,
@@ -17,15 +21,16 @@ class Habit {
     required this.createdAt,
     required this.completionDates,
     required this.targetDays,
+    this.reminderTime,
+    this.isActive = true,
   });
 
-  // Подсчет текущей серии выполнения
   int get currentStreak {
     if (completionDates.isEmpty) return 0;
     
     var streak = 1;
-    var currentDate = DateTime.now();
     var sortedDates = [...completionDates]..sort((a, b) => b.compareTo(a));
+    var today = DateTime.now();
     
     for (var i = 0; i < sortedDates.length - 1; i++) {
       var diff = sortedDates[i].difference(sortedDates[i + 1]).inDays;
@@ -35,16 +40,19 @@ class Habit {
         break;
       }
     }
-    return streak;
+    
+    bool completedToday = sortedDates.first.year == today.year &&
+                          sortedDates.first.month == today.month &&
+                          sortedDates.first.day == today.day;
+    
+    return completedToday ? streak : streak - 1;
   }
 
-  // Прогресс в процентах
   double get progress {
     if (targetDays == 0) return 0;
     return (currentStreak / targetDays).clamp(0.0, 1.0);
   }
 
-  // Проверка, выполнена ли привычка сегодня
   bool get isCompletedToday {
     final today = DateTime.now();
     return completionDates.any((date) => 
@@ -58,27 +66,41 @@ class Habit {
     return {
       'id': id,
       'title': title,
-      'icon': icon.codePoint,
-      'color': color.value,
+      'iconCodePoint': icon.codePoint,
+      'iconFontFamily': icon.fontFamily,
+      'iconFontPackage': icon.fontPackage,
+      'colorValue': color.value,
       'periodicity': periodicity,
       'createdAt': createdAt.toIso8601String(),
-      'completionDates': completionDates.map((d) => d.toIso8601String()).toList(),
       'targetDays': targetDays,
+      'reminderTime': reminderTime != null 
+          ? '${reminderTime!.hour}:${reminderTime!.minute}' 
+          : null,
+      'isActive': isActive ? 1 : 0,
     };
   }
 
-  factory Habit.fromJson(Map<String, dynamic> json) {
+  factory Habit.fromJson(Map<String, dynamic> json, List<DateTime> completions) {
     return Habit(
       id: json['id'],
       title: json['title'],
-      icon: IconData(json['icon'], fontFamily: 'MaterialIcons'),
-      color: Color(json['color']),
+      icon: IconData(
+        json['iconCodePoint'],
+        fontFamily: json['iconFontFamily'],
+        fontPackage: json['iconFontPackage'],
+      ),
+      color: Color(json['colorValue']),
       periodicity: json['periodicity'],
       createdAt: DateTime.parse(json['createdAt']),
-      completionDates: (json['completionDates'] as List)
-          .map((d) => DateTime.parse(d))
-          .toList(),
+      completionDates: completions,
       targetDays: json['targetDays'],
+      reminderTime: json['reminderTime'] != null
+          ? TimeOfDay(
+              hour: int.parse(json['reminderTime'].split(':')[0]),
+              minute: int.parse(json['reminderTime'].split(':')[1]),
+            )
+          : null,
+      isActive: json['isActive'] == 1,
     );
   }
 }

@@ -17,7 +17,7 @@ class AppConstants {
     Icons.night_shelter,
     Icons.light_mode,
     Icons.medication,
-    Icons.yoga,
+    Icons.sports_gymnastics,
     Icons.spa,
     Icons.agriculture,
   ];

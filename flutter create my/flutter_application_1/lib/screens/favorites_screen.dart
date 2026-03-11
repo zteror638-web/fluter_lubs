@@ -47,68 +47,63 @@ class _FavoritesScreenState extends State<FavoritesScreen>
   }
 
   Widget _buildQuotesTab() {
-    return Consumer<StorageService>(
-      builder: (context, storage, child) {
-        if (storage.favoriteQuotes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.format_quote,
-                  size: 80,
-                  color: Colors.grey.shade400,
+  return Consumer<StorageService>(
+    builder: (context, storage, child) {
+      if (storage.favoriteQuotes.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.format_quote,
+                size: 80,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Нет избранных цитат',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade600,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Нет избранных цитат',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey.shade600,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Сохраняйте цитаты на экране "Вдохновение"',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Сохраняйте цитаты на экране "Вдохновение"',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Переход на экран вдохновения
-                    final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
-                    parentState?.setState(() {
-                      // Изменяем индекс BottomNavigationBar на 1 (Вдохновение)
-                      // Это требует доступа к состоянию родителя
-                    });
-                  },
-                  icon: const Icon(Icons.explore),
-                  label: const Text('Найти цитаты'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: storage.favoriteQuotes.length,
-          itemBuilder: (context, index) {
-            final quote = storage.favoriteQuotes[index];
-            return QuoteCard(
-              quote: quote,
-              isFavorite: true,
-              onSave: () => _saveQuoteAsIdea(context, quote),
-              onRemove: () => _removeQuote(context, quote.id),
-            );
-          },
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/inspiration');
+                },
+                icon: const Icon(Icons.explore),
+                label: const Text('Найти цитаты'),
+              ),
+            ],
+          ),
         );
-      },
-    );
-  }
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: storage.favoriteQuotes.length,
+        itemBuilder: (context, index) {
+          final quote = storage.favoriteQuotes[index];
+          return QuoteCard(
+            quote: quote,
+            isFavorite: true,
+            onSave: () => _saveQuoteAsIdea(context, quote),
+            onRemove: () => _removeQuote(context, quote.id),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildIdeasTab() {
     return Consumer<StorageService>(

@@ -4,7 +4,6 @@ import '../services/storage_service.dart';
 import '../widgets/habit_card.dart';
 import '../widgets/idea_card.dart';
 import '../widgets/progress_widget.dart';
-import 'habit_constructor_screen.dart';
 import '../models/idea.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -57,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, storage, child) {
           return RefreshIndicator(
             onRefresh: () async {
-              await storage._loadAllData();
+              await storage.refreshData();
             },
             child: CustomScrollView(
               slivers: [
@@ -73,7 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           dailyGoal: stats['dailyGoal'] ?? 5,
                         );
                       }
-                      return const SizedBox(height: 100);
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
                     },
                   ),
                 ),
@@ -221,10 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Вдохновение'),
             onTap: () {
               Navigator.pop(context);
-              final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
-              parentState?.setState(() {
-                parentState._currentIndex = 1;
-              });
+              Navigator.pushNamed(context, '/inspiration');
             },
           ),
           ListTile(
@@ -232,10 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Избранное'),
             onTap: () {
               Navigator.pop(context);
-              final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
-              parentState?.setState(() {
-                parentState._currentIndex = 2;
-              });
+              Navigator.pushNamed(context, '/favorites');
             },
           ),
           const Divider(),
@@ -261,10 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('О приложении'),
             onTap: () {
               Navigator.pop(context);
-              final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
-              parentState?.setState(() {
-                parentState._currentIndex = 3;
-              });
+              Navigator.pushNamed(context, '/about');
             },
           ),
         ],
@@ -277,10 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.all(16),
       child: InkWell(
         onTap: () {
-          final parentState = context.findAncestorStateOfType<_MainNavigationScreenState>();
-          parentState?.setState(() {
-            parentState._currentIndex = 1;
-          });
+          Navigator.pushNamed(context, '/inspiration');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

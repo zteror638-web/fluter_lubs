@@ -10,10 +10,7 @@ import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Инициализация сервиса хранения данных
   final storageService = await StorageService.init();
-  
   runApp(MyApp(storageService: storageService));
 }
 
@@ -33,58 +30,52 @@ class MyApp extends StatelessWidget {
           final isDarkMode = storage.settings.isDarkMode;
           
           return MaterialApp(
-            title: 'Habit & Idea Tracker',
-            themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
-              useMaterial3: true,
-              fontFamily: 'Roboto',
-              appBarTheme: const AppBarTheme(
-                elevation: 0,
-                centerTitle: true,
-              ),
-              cardTheme: CardTheme(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                title: 'Habit & Idea Tracker',
+                themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+                theme: ThemeData(
+                  primarySwatch: Colors.blue,
+                  useMaterial3: true,
+                  fontFamily: 'Roboto',
+                  appBarTheme: const AppBarTheme(
+                    elevation: 0,
+                    centerTitle: true,
+                  ),
+                  // Убираем cardTheme полностью
                 ),
-              ),
-            ),
-            darkTheme: ThemeData.dark().copyWith(
-              primaryColor: Colors.blue,
-              appBarTheme: const AppBarTheme(
-                elevation: 0,
-                centerTitle: true,
-              ),
-              cardTheme: CardTheme(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                darkTheme: ThemeData.dark().copyWith(
+                  primaryColor: Colors.blue,
+                  appBarTheme: const AppBarTheme(
+                    elevation: 0,
+                    centerTitle: true,
+                  ),
+                  // Убираем cardTheme полностью
                 ),
-              ),
-            ),
-            initialRoute: '/',
-            routes: {
-              '/': (context) => const MainNavigationScreen(),
-              '/habitConstructor': (context) => const HabitConstructorScreen(),
-              '/settings': (context) => const SettingsScreen(),
-            },
-            debugShowCheckedModeBanner: false,
-          );
+                initialRoute: '/',
+                routes: {
+                  '/': (context) => const MainNavigationScreen(),
+                  '/habitConstructor': (context) => const HabitConstructorScreen(),
+                  '/settings': (context) => const SettingsScreen(),
+                  '/inspiration': (context) => const InspirationScreen(),
+                  '/favorites': (context) => const FavoritesScreen(),
+                  '/about': (context) => const AboutScreen(),
+                },
+                debugShowCheckedModeBanner: false,
+              );
         },
       ),
     );
   }
 }
 
+// Главный экран с BottomNavigationBar
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() => MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   
   late final List<Widget> _screens = [
@@ -92,13 +83,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const InspirationScreen(),
     const FavoritesScreen(),
     const AboutScreen(),
-  ];
-
-  final List<String> _titles = [
-    'Главная',
-    'Вдохновение',
-    'Избранное',
-    'О приложении',
   ];
 
   @override
@@ -113,7 +97,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           });
         },
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
         selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey,
         items: const [
