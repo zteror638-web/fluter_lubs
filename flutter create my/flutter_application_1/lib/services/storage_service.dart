@@ -1,109 +1,153 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../database/habit_repository.dart';
+import '../database/idea_repository.dart';
+import '../database/quote_repository.dart';
+import '../services/settings_manager.dart';
 import '../models/habit.dart';
 import '../models/idea.dart';
+import '../models/quote.dart';
+import '../models/advice.dart';
 
 class StorageService extends ChangeNotifier {
-  late SharedPreferences _prefs;
+  late final HabitRepository _habitRepo;
+  late final IdeaRepository _ideaRepo;
+  late final QuoteRepository _quoteRepo;
+  late final SettingsManager _settings;
+
   List<Habit> _habits = [];
   List<Idea> _ideas = [];
+  List<Quote> _favoriteQuotes = [];
 
   List<Habit> get habits => _habits;
   List<Idea> get ideas => _ideas;
+  List<Quote> get favoriteQuotes => _favoriteQuotes;
 
-  // Инициализация сервиса
+  StorageService() {
+    _habitRepo = HabitRepository();
+    _ideaRepo = IdeaRepository();
+    _quoteRepo = QuoteRepository();
+    _settings = SettingsManager();
+  }
+
   static Future<StorageService> init() async {
     final service = StorageService();
-    service._prefs = await SharedPreferences.getInstance();
-    await service._loadData();
+    await service._settings.init();
+    await service._loadAllData();
     return service;
   }
 
-  // Загрузка данных из SharedPreferences
-  Future<void> _loadData() async {
-    // Загрузка привычек
-    final habitsJson = _prefs.getString('habits');
-    if (habitsJson != null) {
-      final List<dynamic> habitsList = jsonDecode(habitsJson);
-      _habits = habitsList.map((h) => Habit.fromJson(h)).toList();
-    }
-
-    // Загрузка идей
-    final ideasJson = _prefs.getString('ideas');
-    if (ideasJson != null) {
-      final List<dynamic> ideasList = jsonDecode(ideasJson);
-      _ideas = ideasList.map((i) => Idea.fromJson(i)).toList();
-    }
+  // Загрузка всех данных
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadHabits(),
+      _loadIdeas(),
+      _loadFavoriteQuotes(),
+    ]);
+    notifyListeners();
   }
 
-  // Сохранение данных
-  Future<void> _saveData() async {
-    // Сохранение привычек
-    final habitsJson = jsonEncode(_habits.map((h) => h.toJson()).toList());
-    await _prefs.setString('habits', habitsJson);
+  Future<void> _loadHabits() async {
+    _habits = await _habitRepo.getAllHabits();
+  }
 
-    // Сохранение идей
-    final ideasJson = jsonEncode(_ideas.map((i) => i.toJson()).toList());
-    await _prefs.setString('ideas', ideasJson);
-    
-    notifyListeners();
+  Future<void> _loadIdeas() async {
+    _ideas = await _ideaRepo.getAllIdeas();
+  }
+
+  Future<void> _loadFavoriteQuotes() async {
+    _favoriteQuotes = await _quoteRepo.getFavoriteQuotes();
   }
 
   // CRUD для привычек
   Future<void> addHabit(Habit habit) async {
-    _habits.add(habit);
-    await _saveData();
+    await _habitRepo.insertHabit(habit);
+    await _loadHabits();
+    notifyListeners();
   }
 
-  Future<void> updateHabit(Habit updatedHabit) async {
-    final index = _habits.indexWhere((h) => h.id == updatedHabit.id);
-    if (index != -1) {
-      _habits[index] = updatedHabit;
-      await _saveData();
-    }
+  Future<void> updateHabit(Habit habit) async {
+    await _habitRepo.updateHabit(habit);
+    await _loadHabits();
+    notifyListeners();
   }
 
   Future<void> deleteHabit(String id) async {
-    _habits.removeWhere((h) => h.id == id);
-    await _saveData();
+    await _habitRepo.deleteHabit(id);
+    await _loadHabits();
+    notifyListeners();
+  }
+
+  Future<void> completeHabitToday(String habitId) async {
+    await _habitRepo.completeHabitToday(habitId);
+    await _loadHabits();
+    notifyListeners();
   }
 
   // CRUD для идей
   Future<void> addIdea(Idea idea) async {
-    _ideas.add(idea);
-    await _saveData();
+    await _ideaRepo.insertIdea(idea);
+    await _loadIdeas();
+    notifyListeners();
   }
 
-  Future<void> updateIdea(Idea updatedIdea) async {
-    final index = _ideas.indexWhere((i) => i.id == updatedIdea.id);
-    if (index != -1) {
-      _ideas[index] = updatedIdea;
-      await _saveData();
-    }
+  Future<void> updateIdea(Idea idea) async {
+    await _ideaRepo.updateIdea(idea);
+    await _loadIdeas();
+    notifyListeners();
   }
 
   Future<void> deleteIdea(String id) async {
-    _ideas.removeWhere((i) => i.id == id);
-    await _saveData();
+    await _ideaRepo.deleteIdea(id);
+    await _loadIdeas();
+    notifyListeners();
   }
 
-  // Отметка выполнения привычки
-  Future<void> completeHabitToday(String habitId) async {
-    final habit = _habits.firstWhere((h) => h.id == habitId);
-    final today = DateTime.now();
-    
-    if (!habit.isCompletedToday) {
-      habit.completionDates.add(today);
-      await updateHabit(habit);
-    }
+  Future<List<Idea>> searchIdeas(String query) async {
+    return await _ideaRepo.searchIdeas(query);
   }
 
-  // Статистика для главного экрана
+  // Работа с цитатами
+  Future<void> addFavoriteQuote(Quote quote) async {
+    await _quoteRepo.addToFavorites(quote);
+    await _loadFavoriteQuotes();
+    notifyListeners();
+  }
+
+  Future<void> removeFavoriteQuote(String quoteId) async {
+    await _quoteRepo.removeFromFavorites(quoteId);
+    await _loadFavoriteQuotes();
+    notifyListeners();
+  }
+
+  // Статистика
+  Future<Map<String, dynamic>> getStatistics() async {
+    final habitStats = await _habitRepo.getHabitStatistics();
+    final ideasCount = _ideas.length;
+    final favoritesCount = _favoriteQuotes.length;
+
+    return {
+      ...habitStats,
+      'ideasCount': ideasCount,
+      'favoritesCount': favoritesCount,
+      'dailyGoal': _settings.dailyGoal,
+      'completedToday': habitStats['completedToday'],
+    };
+  }
+
   int get completedTodayCount {
     final today = DateTime.now();
     return _habits.where((h) => h.isCompletedToday).length;
   }
 
   int get totalHabitsCount => _habits.length;
+
+  // Доступ к настройкам
+  SettingsManager get settings => _settings;
+
+  // Очистка всех данных (для тестирования)
+  Future<void> clearAllData() async {
+    // Здесь можно добавить логику очистки всех таблиц
+    await _loadAllData();
+    notifyListeners();
+  }
 }

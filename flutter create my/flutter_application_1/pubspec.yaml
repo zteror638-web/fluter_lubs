@@ -1,5 +1,5 @@
 name: habit_idea_tracker
-description: A habit and idea tracker app with API integration
+description: A habit and idea tracker app with local storage
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,11 +9,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # State management
   provider: ^6.1.1
+  
+  # Local storage
+  sqflite: ^2.3.0
   shared_preferences: ^2.2.2
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  
+  # Networking
   http: ^1.1.0
+  
+  # Utilities
   intl: ^0.18.1
-  url_launcher: ^6.2.1  # Для открытия ссылок
+  url_launcher: ^6.2.1
+  
+  # UI
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

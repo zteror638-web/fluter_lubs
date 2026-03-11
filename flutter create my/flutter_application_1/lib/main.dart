@@ -3,13 +3,17 @@ import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/habit_constructor_screen.dart';
 import 'screens/inspiration_screen.dart';
-import 'screens/about_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/favorites_screen.dart';
+import 'screens/about_screen.dart';
 import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Инициализация сервиса хранения данных
   final storageService = await StorageService.init();
+  
   runApp(MyApp(storageService: storageService));
 }
 
@@ -20,39 +24,49 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => storageService,
-      child: MaterialApp(
-        title: 'Habit & Idea Tracker',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          fontFamily: 'Roboto',
-          appBarTheme: const AppBarTheme(
-            elevation: 0,
-            centerTitle: true,
-          ),
-        ),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const MainNavigationScreen(),
-          '/habitConstructor': (context) => const HabitConstructorScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: storageService),
+      ],
+      child: Consumer<StorageService>(
+        builder: (context, storage, child) {
+          // Применяем тему из настроек
+          final isDarkMode = storage.settings.isDarkMode;
+          
+          return MaterialApp(
+            title: 'Habit & Idea Tracker',
+            themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              useMaterial3: true,
+              fontFamily: 'Roboto',
+              appBarTheme: const AppBarTheme(
+                elevation: 0,
+                centerTitle: true,
+              ),
+            ),
+            darkTheme: ThemeData.dark().copyWith(
+              primaryColor: Colors.blue,
+              appBarTheme: const AppBarTheme(
+                elevation: 0,
+                centerTitle: true,
+              ),
+            ),
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const MainNavigationScreen(),
+              '/habitConstructor': (context) => const HabitConstructorScreen(),
+              '/settings': (context) => const SettingsScreen(),
+            },
+            debugShowCheckedModeBanner: false,
+          );
         },
-        onGenerateRoute: (settings) {
-          if (settings.name == '/inspiration') {
-            return MaterialPageRoute(
-              builder: (context) => const InspirationScreen(),
-            );
-          }
-          return null;
-        },
-        debugShowCheckedModeBanner: false,
       ),
     );
   }
 }
 
-// Главный экран с BottomNavigationBar
+// Главный экран с BottomNavigationBar (остается без изменений)
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -63,7 +77,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   
-  // Экраны для навигации
   late final List<Widget> _screens = [
     const HomeScreen(),
     const InspirationScreen(),
@@ -71,7 +84,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const AboutScreen(),
   ];
 
-  // Названия экранов
   final List<String> _titles = [
     'Главная',
     'Вдохновение',
